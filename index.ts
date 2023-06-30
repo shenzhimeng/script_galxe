@@ -4,7 +4,7 @@
  * Author @3lang3 2023-06-21
  * Github: https://github.com/3lang3
  */
-import fs from 'fs';
+import fs from 'fs/promises';
 import { ethers } from "ethers";
 import { cli } from "./utils/cli";
 import { Galex } from "./module";
@@ -39,18 +39,21 @@ function containerId() {
 
 // 获取widget url
 const getPassportUrl = async (wallet: ethers.Wallet) => {
-  const account = new Galex({ privateKey: wallet.privateKey });
-  const signature = await wallet.signMessage(`get_or_create_address_inquiry:${wallet.address.toLocaleLowerCase()}`)
+  let data = '';
   await loop(async () => {
+    const account = new Galex({ privateKey: wallet.privateKey });
+    const signature = await wallet.signMessage(`get_or_create_address_inquiry:${wallet.address.toLocaleLowerCase()}`)
     const { getOrCreateInquiryByAddress } = await account.getOrCreateInquiryByAddress({ signature });
-    const { sessionToken, inquiryID } = getOrCreateInquiryByAddress.personaInquiry
-    if (sessionToken) {
-      const url = `https://withpersona.com/widget?client-version=4.7.1&container-id=${containerId()}&flow-type=embedded&environment=production&iframe-origin=https%3A%2F%2Fgalxe.com&inquiry-id=${inquiryID}&session-token=${sessionToken}`
-      // 将url存入 urls.txt 文件
-      fs.appendFileSync('urls.txt', `[${wallet.address}]${url}\n`);
+    if (getOrCreateInquiryByAddress.status === 'Approved') {
+      data = 'Approved';
       return;
     }
+    const { sessionToken, inquiryID } = getOrCreateInquiryByAddress.personaInquiry
+    if (!sessionToken) throw Error('sessionToken is null, retry')
+    data = `https://withpersona.com/widget?client-version=4.7.1&container-id=${containerId()}&flow-type=embedded&environment=production&iframe-origin=https%3A%2F%2Fgalxe.com&inquiry-id=${inquiryID}&session-token=${sessionToken}`
   })
+  // 将url存入 urls.txt 文件
+  await fs.appendFile('urls.txt', `[${wallet.address}] ${data}\n`);
 }
 
 cli(async ({ action, pks, startIdx, endIdx }) => {
