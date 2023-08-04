@@ -24,7 +24,7 @@ const claim = async (wallet: ethers.Wallet) => {
       return;
     }
     if (r.prepareParticipate?.loyaltyPointsTxResp?.TotalClaimedPoints) {
-      console.log(`成功领取 ${r.prepareParticipate?.loyaltyPointsTxResp?.TotalClaimedPoints} 分`);
+      console.log(`领取成功: ${r.prepareParticipate?.loyaltyPointsTxResp?.TotalClaimedPoints} 分`);
     }
   })
 };
